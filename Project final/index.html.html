@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="th" class="scroll-smooth h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPRU Smart Campus GIS & AI - ระบบผังมหาวิทยาลัยอัจฉริยะ</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        kpruGreen: { 50: '#f0fdf4', 100: '#dcfce7', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d' },
+                        kpruGold: { 500: '#d97706', 600: '#b45309' }
+                    },
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        .hero-bg {
+            background: linear-gradient(135deg, rgba(20, 83, 45, 0.94) 0%, rgba(21, 128, 61, 0.88) 50%, rgba(15, 23, 42, 0.92) 100%),
+                        url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased selection:bg-kpruGreen-600 selection:text-white flex flex-col min-h-full">
+
+    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-kpruGreen-800 rounded-xl flex items-center justify-center text-white shadow-md">
+                        <i class="fa-solid fa-map-location-dot text-2xl text-amber-400"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-bold text-kpruGreen-900 tracking-tight block">KPRU Smart Campus</span>
+                        <span class="text-xs font-medium text-kpruGold-600 uppercase tracking-widest">GIS & AI Platform</span>
+                    </div>
+                </div>
+
+                <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
+                    <a href="index.html" class="px-4 py-2 rounded-lg text-sm font-medium text-kpruGreen-800 bg-kpruGreen-50 transition-colors">
+                        <i class="fa-solid fa-house mr-1.5 text-kpruGreen-600"></i> Home
+                    </a>
+                    <a href="map.html" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50 transition-colors">
+                        <i class="fa-solid fa-map mr-1.5 text-kpruGreen-600"></i> Map View
+                    </a>
+                    <a href="monitoring.html" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50 transition-colors">
+                        <i class="fa-solid fa-chart-line mr-1.5 text-kpruGreen-600"></i> Monitoring
+                    </a>
+                    <a href="dashboard.html" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50 transition-colors">
+                        <i class="fa-solid fa-gauge-high mr-1.5 text-kpruGreen-600"></i> Dashboard
+                    </a>
+                    <a href="maptool.html" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50 transition-colors">
+                        <i class="fa-solid fa-toolbox mr-1.5 text-kpruGreen-600"></i> Maptool
+                    </a>
+                </nav>
+
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-btn" class="p-2 rounded-lg text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-100 focus:outline-none">
+                        <i class="fa-solid fa-bars text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-b border-gray-200 px-4 pt-2 pb-4 space-y-1 shadow-lg">
+            <a href="index.html" class="block px-3 py-2 rounded-md text-base font-medium text-kpruGreen-800 bg-kpruGreen-50"><i class="fa-solid fa-house mr-2 text-kpruGreen-600"></i> Home</a>
+            <a href="map.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"><i class="fa-solid fa-map mr-2 text-kpruGreen-600"></i> Map View</a>
+            <a href="monitoring.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"><i class="fa-solid fa-chart-line mr-2 text-kpruGreen-600"></i> Monitoring</a>
+            <a href="dashboard.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"><i class="fa-solid fa-gauge-high mr-2 text-kpruGreen-600"></i> Dashboard</a>
+            <a href="maptool.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"><i class="fa-solid fa-toolbox mr-2 text-kpruGreen-600"></i> Maptool</a>
+        </div>
+    </header>
+
+    <section class="hero-bg text-white py-20 lg:py-32 relative overflow-hidden flex-none">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="max-w-3xl">
+                <div class="inline-flex items-center space-x-2 bg-kpruGold-500/20 border border-kpruGold-500/30 text-amber-300 px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider mb-6">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Kamphaeng Phet Rajabhat University</span>
+                </div>
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6">
+                    KPRU Smart Campus <span class="text-amber-400">GIS & AI</span>
+                </h1>
+                <p class="text-xl sm:text-2xl font-light text-emerald-100 mb-6">
+                    ระบบผังมหาวิทยาลัยอัจฉริยะด้วยเทคโนโลยี GIS และ AI
+                </p>
+                <p class="text-base sm:text-lg text-gray-200 font-light leading-relaxed mb-10">
+                    “แพลตฟอร์มสารสนเทศภูมิศาสตร์สำหรับสำรวจ ค้นหา วิเคราะห์ และบริหารจัดการพื้นที่มหาวิทยาลัยราชภัฏกำแพงเพชร พร้อมระบบ AI สนับสนุนการค้นหาสถานที่และการตัดสินใจเชิงพื้นที่”
+                </p>
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <a href="map.html" class="inline-flex justify-center items-center px-8 py-4 bg-amber-500 hover:bg-amber-600 text-gray-950 font-bold rounded-xl shadow-lg hover:shadow-amber-500/30 transition-all transform hover:-translate-y-0.5">
+                        <i class="fa-solid fa-compass mr-2"></i> สำรวจแผนที่
+                    </a>
+                    <a href="dashboard.html" class="inline-flex justify-center items-center px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/30 text-white font-semibold rounded-xl backdrop-blur-sm transition-all transform hover:-translate-y-0.5">
+                        <i class="fa-solid fa-chart-pie mr-2"></i> Smart Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none"></div>
+    </section>
+
+    <section class="py-16 bg-white border-b border-gray-100 flex-none">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-2xl mx-auto mb-12">
+                <span class="text-kpruGreen-600 font-semibold text-sm uppercase tracking-wider">Quick Navigation</span>
+                <h2 class="text-3xl font-bold text-gray-900 mt-1">หมวดหมู่สถานที่สำคัญ</h2>
+                <p class="text-gray-500 mt-2">เข้าถึงข้อมูลและตำแหน่งพื้นที่ภายในมหาวิทยาลัยได้อย่างรวดเร็ว</p>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                <a href="map.html" class="group bg-gray-50 hover:bg-kpruGreen-50 border border-gray-100 hover:border-kpruGreen-200 p-6 rounded-2xl transition-all duration-300 text-center shadow-sm hover:shadow-md transform hover:-translate-y-1">
+                    <div class="w-14 h-14 bg-white group-hover:bg-kpruGreen-600 text-kpruGreen-600 group-hover:text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm transition-colors duration-300 text-2xl">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 group-hover:text-kpruGreen-900 text-lg">อาคารเรียน</h3>
+                    <p class="text-xs text-gray-500 mt-1">ค้นหาห้องเรียนและคณะ</p>
+                </a>
+
+                <a href="map.html" class="group bg-gray-50 hover:bg-kpruGreen-50 border border-gray-100 hover:border-kpruGreen-200 p-6 rounded-2xl transition-all duration-300 text-center shadow-sm hover:shadow-md transform hover:-translate-y-1">
+                    <div class="w-14 h-14 bg-white group-hover:bg-kpruGreen-600 text-kpruGreen-600 group-hover:text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm transition-colors duration-300 text-2xl">
+                        <i class="fa-solid fa-building-columns"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 group-hover:text-kpruGreen-900 text-lg">อาคารสำนักงาน</h3>
+                    <p class="text-xs text-gray-500 mt-1">หน่วยงานและกองบริหาร</p>
+                </a>
+
+                <a href="map.html" class="group bg-gray-50 hover:bg-kpruGreen-50 border border-gray-100 hover:border-kpruGreen-200 p-6 rounded-2xl transition-all duration-300 text-center shadow-sm hover:shadow-md transform hover:-translate-y-1">
+                    <div class="w-14 h-14 bg-white group-hover:bg-kpruGreen-600 text-kpruGreen-600 group-hover:text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm transition-colors duration-300 text-2xl">
+                        <i class="fa-solid fa-book-open"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 group-hover:text-kpruGreen-900 text-lg">ห้องสมุด</h3>
+                    <p class="text-xs text-gray-500 mt-1">แหล่งเรียนรู้และค้นคว้า</p>
+                </a>
+
+                <a href="map.html" class="group bg-gray-50 hover:bg-kpruGreen-50 border border-gray-100 hover:border-kpruGreen-200 p-6 rounded-2xl transition-all duration-300 text-center shadow-sm hover:shadow-md transform hover:-translate-y-1">
+                    <div class="w-14 h-14 bg-white group-hover:bg-kpruGreen-600 text-kpruGreen-600 group-hover:text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm transition-colors duration-300 text-2xl">
+                        <i class="fa-solid fa-landmark"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 group-hover:text-kpruGreen-900 text-lg">หอประชุม</h3>
+                    <p class="text-xs text-gray-500 mt-1">สถานที่จัดกิจกรรมใหญ่</p>
+                </a>
+
+                <a href="map.html" class="group bg-gray-50 hover:bg-kpruGreen-50 border border-gray-100 hover:border-kpruGreen-200 p-6 rounded-2xl transition-all duration-300 text-center shadow-sm hover:shadow-md transform hover:-translate-y-1">
+                    <div class="w-14 h-14 bg-white group-hover:bg-kpruGreen-600 text-kpruGreen-600 group-hover:text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm transition-colors duration-300 text-2xl">
+                        <i class="fa-solid fa-utensils"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 group-hover:text-kpruGreen-900 text-lg">โรงอาหาร</h3>
+                    <p class="text-xs text-gray-500 mt-1">ศูนย์อาหารและเครื่องดื่ม</p>
+                </a>
+
+                <a href="map.html" class="group bg-gray-50 hover:bg-kpruGreen-50 border border-gray-100 hover:border-kpruGreen-200 p-6 rounded-2xl transition-all duration-300 text-center shadow-sm hover:shadow-md transform hover:-translate-y-1">
+                    <div class="w-14 h-14 bg-white group-hover:bg-kpruGreen-600 text-kpruGreen-600 group-hover:text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm transition-colors duration-300 text-2xl">
+                        <i class="fa-solid fa-futbol"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 group-hover:text-kpruGreen-900 text-lg">สนามกีฬา</h3>
+                    <p class="text-xs text-gray-500 mt-1">พื้นที่ออกกำลังกายและกีฬา</p>
+                </a>
+
+                <a href="map.html" class="group bg-gray-50 hover:bg-kpruGreen-50 border border-gray-100 hover:border-kpruGreen-200 p-6 rounded-2xl transition-all duration-300 text-center shadow-sm hover:shadow-md transform hover:-translate-y-1">
+                    <div class="w-14 h-14 bg-white group-hover:bg-kpruGreen-600 text-kpruGreen-600 group-hover:text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm transition-colors duration-300 text-2xl">
+                        <i class="fa-solid fa-square-parking"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 group-hover:text-kpruGreen-900 text-lg">ที่จอดรถ</h3>
+                    <p class="text-xs text-gray-500 mt-1">จุดจอดรถยนต์และจักรยานยนต์</p>
+                </a>
+
+                <a href="map.html" class="group bg-gray-50 hover:bg-kpruGreen-50 border border-gray-100 hover:border-kpruGreen-200 p-6 rounded-2xl transition-all duration-300 text-center shadow-sm hover:shadow-md transform hover:-translate-y-1">
+                    <div class="w-14 h-14 bg-white group-hover:bg-kpruGreen-600 text-kpruGreen-600 group-hover:text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm transition-colors duration-300 text-2xl">
+                        <i class="fa-solid fa-tree"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 group-hover:text-kpruGreen-900 text-lg">พื้นที่สีเขียว</h3>
+                    <p class="text-xs text-gray-500 mt-1">สวนสาธารณะและธรรมชาติ</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-20 bg-gray-50 flex-none">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <span class="text-kpruGreen-600 font-semibold text-sm uppercase tracking-wider">Core Capabilities</span>
+                <h2 class="text-3xl font-bold text-gray-900 mt-1">Smart Campus Features</h2>
+                <p class="text-gray-500 mt-2">เทคโนโลยีอัจฉริยะที่ผสานรวมระบบ GIS และปัญญาประดิษฐ์เข้าด้วยกัน</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 bg-kpruGreen-50 text-kpruGreen-700 font-bold px-4 py-2 rounded-bl-2xl text-sm">01</div>
+                    <div class="w-12 h-12 bg-kpruGreen-100 text-kpruGreen-700 rounded-xl flex items-center justify-center mb-6 text-xl">
+                        <i class="fa-solid fa-map-marked-alt"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Interactive Campus Map</h3>
+                    <p class="text-gray-600 text-sm leading-relaxed">ค้นหาและสำรวจพื้นที่มหาวิทยาลัยในรูปแบบแผนที่ดิจิทัลที่มีความละเอียดสูงและเชื่อมโยงฐานข้อมูลจริง</p>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 bg-kpruGreen-50 text-kpruGreen-700 font-bold px-4 py-2 rounded-bl-2xl text-sm">02</div>
+                    <div class="w-12 h-12 bg-kpruGreen-100 text-kpruGreen-700 rounded-xl flex items-center justify-center mb-6 text-xl">
+                        <i class="fa-solid fa-route"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Smart Navigation</h3>
+                    <p class="text-gray-600 text-sm leading-relaxed">ระบบนำทางอัจฉริยะบนเส้นทางถนนจริงภายในมหาวิทยาลัย ช่วยค้นหาเส้นทางที่สะดวกรวดเร็วที่สุด</p>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 bg-kpruGreen-50 text-kpruGreen-700 font-bold px-4 py-2 rounded-bl-2xl text-sm">03</div>
+                    <div class="w-12 h-12 bg-kpruGreen-100 text-kpruGreen-700 rounded-xl flex items-center justify-center mb-6 text-xl">
+                        <i class="fa-solid fa-tower-broadcast"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Smart Monitoring</h3>
+                    <p class="text-gray-600 text-sm leading-relaxed">ติดตามข้อมูลพื้นที่และสถานะการใช้งานสิ่งอำนวยความสะดวกต่างๆ ภายในมหาวิทยาลัยแบบ Real-Time</p>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 bg-kpruGreen-50 text-kpruGreen-700 font-bold px-4 py-2 rounded-bl-2xl text-sm">04</div>
+                    <div class="w-12 h-12 bg-kpruGreen-100 text-kpruGreen-700 rounded-xl flex items-center justify-center mb-6 text-xl">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">GIS Analysis</h3>
+                    <p class="text-gray-600 text-sm leading-relaxed">เครื่องมือวิเคราะห์ข้อมูลเชิงพื้นที่ขั้นสูง เช่น Buffer, Nearest, Service Area และ Spatial Query</p>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 bg-kpruGreen-50 text-kpruGreen-700 font-bold px-4 py-2 rounded-bl-2xl text-sm">05</div>
+                    <div class="w-12 h-12 bg-kpruGreen-100 text-kpruGreen-700 rounded-xl flex items-center justify-center mb-6 text-xl">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Smart Dashboard</h3>
+                    <p class="text-gray-600 text-sm leading-relaxed">แสดงผลข้อมูลสรุป สถิติ และตัวชี้วัดสำคัญของมหาวิทยาลัยในรูปแบบแดชบอร์ดที่เข้าใจง่ายครบถ้วน</p>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 bg-kpruGreen-50 text-kpruGreen-700 font-bold px-4 py-2 rounded-bl-2xl text-sm">06</div>
+                    <div class="w-12 h-12 bg-kpruGreen-100 text-kpruGreen-700 rounded-xl flex items-center justify-center mb-6 text-xl">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">AI Campus Assistant</h3>
+                    <p class="text-gray-600 text-sm leading-relaxed">ผู้ช่วยอัจฉริยะระบบ AI ที่พร้อมตอบคำถาม ช่วยค้นหาสถานที่ และให้คำแนะนำเชิงพื้นที่ตลอด 24 ชั่วโมง</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-16 bg-kpruGreen-900 text-white flex-none">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-2xl mx-auto mb-12">
+                <span class="text-amber-400 font-semibold text-sm uppercase tracking-wider">Campus Overview</span>
+                <h2 class="text-3xl font-bold mt-1">สถิติและข้อมูลภาพรวมมหาวิทยาลัย</h2>
+                <p class="text-emerald-200/80 mt-2">ข้อมูลสรุปเบื้องต้นของมหาวิทยาลัยราชภัฏกำแพงเพชร</p>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
+                <div class="bg-kpruGreen-800/60 border border-emerald-700/40 p-6 rounded-2xl backdrop-blur-sm">
+                    <div class="text-3xl lg:text-4xl font-extrabold text-amber-400 mb-2">78</div>
+                    <div class="text-sm font-medium text-emerald-100">จำนวนอาคาร</div>
+                </div>
+                <div class="bg-kpruGreen-800/60 border border-emerald-700/40 p-6 rounded-2xl backdrop-blur-sm">
+                    <div class="text-3xl lg:text-4xl font-extrabold text-amber-400 mb-2">420 ไร่</div>
+                    <div class="text-sm font-medium text-emerald-100">พื้นที่มหาวิทยาลัย</div>
+                </div>
+                <div class="bg-kpruGreen-800/60 border border-emerald-700/40 p-6 rounded-2xl backdrop-blur-sm">
+                    <div class="text-3xl lg:text-4xl font-extrabold text-amber-400 mb-2">145 ไร่</div>
+                    <div class="text-sm font-medium text-emerald-100">พื้นที่สีเขียว</div>
+                </div>
+                <div class="bg-kpruGreen-800/60 border border-emerald-700/40 p-6 rounded-2xl backdrop-blur-sm">
+                    <div class="text-3xl lg:text-4xl font-extrabold text-amber-400 mb-2">48 จุด</div>
+                    <div class="text-sm font-medium text-emerald-100">จุดบริการ</div>
+                </div>
+                <div class="bg-kpruGreen-800/60 border border-emerald-700/40 p-6 rounded-2xl backdrop-blur-sm col-span-2 md:col-span-1">
+                    <div class="text-3xl lg:text-4xl font-extrabold text-amber-400 mb-2">1,250 คัน</div>
+                    <div class="text-sm font-medium text-emerald-100">ที่จอดรถ</div>
+                </div>
+            </div>
+            <p class="text-center text-xs text-emerald-300/60 mt-6">* หมายเหตุ: ข้อมูลในระบบแสดงผลตามฐานข้อมูลจริง GIS ปัจจุบัน</p>
+        </div>
+    </section>
+
+    <footer class="bg-gray-900 text-gray-400 py-12 border-t border-gray-800 flex-none">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center space-y-6 md:space-y-0">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-kpruGreen-800 rounded-lg flex items-center justify-center text-white">
+                    <i class="fa-solid fa-map-location-dot text-amber-400"></i>
+                </div>
+                <div>
+                    <span class="text-white font-bold block">KPRU Smart Campus GIS & AI</span>
+                    <span class="text-xs text-gray-500">มหาวิทยาลัยราชภัฏกำแพงเพชร (Kamphaeng Phet Rajabhat University)</span>
+                </div>
+            </div>
+            <div class="text-sm text-gray-500 text-center md:text-right">
+                &copy; 2026 KPRU Smart Campus. All rights reserved. Designed for Academic & GIS Excellence.
+            </div>
+        </div>
+    </footer>
+
+    <button id="ai-toggle-btn" class="fixed bottom-6 right-6 z-50 bg-kpruGreen-800 hover:bg-kpruGreen-700 text-white p-4 rounded-full shadow-2xl flex items-center space-x-3 transition-all transform hover:scale-105 focus:outline-none border-2 border-amber-400">
+        <div class="relative">
+            <i class="fa-solid fa-robot text-2xl text-amber-400"></i>
+            <span class="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse border-2 border-kpruGreen-800"></span>
+        </div>
+        <span class="font-semibold pr-2 hidden sm:inline">KPRU AI Assistant</span>
+    </button>
+
+    <div id="ai-chat-panel" class="fixed bottom-24 right-6 z-50 w-96 max-w-[calc(100vw-3rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 hidden flex flex-col overflow-hidden transition-all duration-300 transform scale-95 opacity-0">
+        <div class="bg-kpruGreen-800 text-white p-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-amber-400">
+                    <i class="fa-solid fa-robot text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm">KPRU AI Assistant</h3>
+                    <p class="text-xs text-emerald-200">ผู้ช่วยอัจฉริยะประจำมหาวิทยาลัย</p>
+                </div>
+            </div>
+            <button id="ai-close-btn" class="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <div id="chat-messages" class="p-4 h-80 overflow-y-auto space-y-4 bg-gray-50 text-sm">
+            <div class="flex items-start space-x-2">
+                <div class="w-8 h-8 rounded-full bg-kpruGreen-700 text-amber-400 flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                    AI
+                </div>
+                <div class="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-gray-100 text-gray-700 max-w-[80%]">
+                    สวัสดีครับ! ผมคือ KPRU AI Assistant ยินดีให้บริการข้อมูลสถานที่ เส้นทาง และบริการภายในมหาวิทยาลัยราชภัฏกำแพงเพชรครับ มีอะไรให้ผมช่วยไหมครับ?
+                </div>
+            </div>
+
+            <div class="space-y-1.5 pt-2">
+                <p class="text-xs text-gray-400 px-1 font-medium">ตัวอย่างคำถามยอดนิยม:</p>
+                <button class="quick-prompt block w-full text-left bg-white hover:bg-kpruGreen-50 text-kpruGreen-800 border border-gray-200 hover:border-kpruGreen-300 px-3 py-2 rounded-xl text-xs transition-colors shadow-sm">
+                    “ห้องสมุดอยู่ที่ไหน?”
+                </button>
+                <button class="quick-prompt block w-full text-left bg-white hover:bg-kpruGreen-50 text-kpruGreen-800 border border-gray-200 hover:border-kpruGreen-300 px-3 py-2 rounded-xl text-xs transition-colors shadow-sm">
+                    “อาคารเรียนที่ใกล้ที่สุดอยู่ตรงไหน?”
+                </button>
+                <button class="quick-prompt block w-full text-left bg-white hover:bg-kpruGreen-50 text-kpruGreen-800 border border-gray-200 hover:border-kpruGreen-300 px-3 py-2 rounded-xl text-xs transition-colors shadow-sm">
+                    “พาฉันไปหอประชุม”
+                </button>
+                <button class="quick-prompt block w-full text-left bg-white hover:bg-kpruGreen-50 text-kpruGreen-800 border border-gray-200 hover:border-kpruGreen-300 px-3 py-2 rounded-xl text-xs transition-colors shadow-sm">
+                    “ที่จอดรถใกล้ฉันอยู่ตรงไหน?”
+                </button>
+            </div>
+        </div>
+
+        <form id="chat-form" class="p-3 bg-white border-t border-gray-200 flex items-center space-x-2">
+            <input type="text" id="chat-input" placeholder="พิมพ์คำถามของคุณที่นี่..." class="flex-1 bg-gray-100 border border-gray-200 focus:border-kpruGreen-600 focus:bg-white text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:outline-none transition-colors">
+            <button type="submit" class="bg-kpruGreen-800 hover:bg-kpruGreen-700 text-amber-400 px-4 py-2.5 rounded-xl transition-colors shadow-sm flex items-center justify-center">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+
+    <script>
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        const aiToggleBtn = document.getElementById('ai-toggle-btn');
+        const aiCloseBtn = document.getElementById('ai-close-btn');
+        const aiChatPanel = document.getElementById('ai-chat-panel');
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const chatMessages = document.getElementById('chat-messages');
+        const quickPrompts = document.querySelectorAll('.quick-prompt');
+
+        function toggleChatPanel() {
+            if (aiChatPanel.classList.contains('hidden')) {
+                aiChatPanel.classList.remove('hidden');
+                setTimeout(() => {
+                    aiChatPanel.classList.remove('scale-95', 'opacity-0');
+                    aiChatPanel.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            } else {
+                aiChatPanel.classList.remove('scale-100', 'opacity-100');
+                aiChatPanel.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    aiChatPanel.classList.add('hidden');
+                }, 300);
+            }
+        }
+
+        aiToggleBtn.addEventListener('click', toggleChatPanel);
+        aiCloseBtn.addEventListener('click', toggleChatPanel);
+
+        function handleUserMessage(text) {
+            if (!text.trim()) return;
+
+            const userMsgDiv = document.createElement('div');
+            userMsgDiv.className = 'flex items-start justify-end space-x-2';
+            userMsgDiv.innerHTML = `
+                <div class="bg-kpruGreen-800 text-white p-3 rounded-2xl rounded-tr-none shadow-sm text-gray-100 max-w-[80%]">
+                    ${escapeHtml(text)}
+                </div>
+                <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                    คุณ
+                </div>
+            `;
+            chatMessages.appendChild(userMsgDiv);
+            chatInput.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            setTimeout(() => {
+                const botMsgDiv = document.createElement('div');
+                botMsgDiv.className = 'flex items-start space-x-2';
+                
+                let reply = "ระบบ AI กำลังประมวลผลข้อมูลตำแหน่งพื้นที่สำหรับคำถามนี้ คุณสามารถตรวจสอบรายละเอียดเพิ่มเติมได้ที่หน้า <a href='map.html' class='text-kpruGreen-700 underline font-semibold'>Map View</a> ครับ";
+                
+                if (text.includes("ห้องสมุด")) {
+                    reply = "หอสมุดและศูนย์กลางสารสนเทศ ตั้งอยู่บริเวณโซนกลางมหาวิทยาลัย ใกล้กับอาคารอำนวยการครับ เปิดให้บริการทุกวัน";
+                } else if (text.includes("อาคารเรียน")) {
+                    reply = "อาคารเรียนรวมและปฏิบัติการกระจายอยู่ตามโซนคณะต่างๆ คุณสามารถค้นหาตำแหน่งที่ตั้งที่ใกล้ที่สุดได้ผ่านหน้าแผนที่อัจฉริยะครับ";
+                } else if (text.includes("หอประชุม")) {
+                    reply = "หอประชุมทีปังกรรัศมีโชติ ตั้งอยู่บริเวณโซนจัดกิจกรรมหลักของมหาวิทยาลัยครับ";
+                } else if (text.includes("ที่จอดรถ")) {
+                    reply = "จุดจอดรถหลักมีให้บริการรอบอาคารสำนักงานและโซนด้านหน้ามหาวิทยาลัย สามารถตรวจสอบจุดจอดรถว่างได้ที่เมนู Monitoring ครับ";
+                }
+
+                botMsgDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-kpruGreen-700 text-amber-400 flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                        AI
+                    </div>
+                    <div class="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-gray-100 text-gray-700 max-w-[80%]">
+                        ${reply}
+                    </div>
+                `;
+                chatMessages.appendChild(botMsgDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 600);
+        }
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleUserMessage(chatInput.value);
+        });
+
+        quickPrompts.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const text = btn.textContent.trim().replace(/^“|”$/g, '');
+                handleUserMessage(text);
+            });
+        });
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>

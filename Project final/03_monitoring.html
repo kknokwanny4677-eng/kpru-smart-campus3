@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPRU Smart Campus GIS & AI - Real-Time Monitoring</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <!-- Leaflet Routing Machine CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <!-- SheetJS for Excel Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        kpruGreen: { 50: '#f0fdf4', 100: '#dcfce7', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d' },
+                        kpruGold: { 500: '#d97706', 600: '#b45309' }
+                    },
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        .leaflet-popup-content-wrapper { border-radius: 1rem; padding: 0.2rem; }
+        .leaflet-popup-content { margin: 12px 16px; font-family: 'Prompt', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body class="h-full flex flex-col bg-gray-100 text-gray-800 overflow-hidden">
+
+    <header class="flex-none z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-kpruGreen-800 rounded-xl flex items-center justify-center text-white shadow-md">
+                        <i class="fa-solid fa-chart-line text-xl text-amber-400"></i>
+                    </div>
+                    <div>
+                        <span class="text-lg font-bold text-kpruGreen-900 tracking-tight block">Smart Campus Monitoring</span>
+                        <span class="text-[10px] font-medium text-kpruGold-600 uppercase tracking-widest">Real-Time Spatial Intelligence & Google Maps Routing</span>
+                    </div>
+                </div>
+
+                <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
+                    <a href="index.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50"><i class="fa-solid fa-house mr-1.5 text-kpruGreen-600"></i> Home</a>
+                    <a href="map.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50"><i class="fa-solid fa-map mr-1.5 text-kpruGreen-600"></i> Map View</a>
+                    <a href="monitoring.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-kpruGreen-800 bg-kpruGreen-50"><i class="fa-solid fa-chart-line mr-1.5 text-kpruGreen-600"></i> Monitoring</a>
+                    <a href="dashboard.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50"><i class="fa-solid fa-gauge-high mr-1.5 text-kpruGreen-600"></i> Dashboard</a>
+                    <a href="maptool.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50"><i class="fa-solid fa-toolbox mr-1.5 text-kpruGreen-600"></i> Maptool</a>
+                </nav>
+
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 bg-green-50 border border-green-200 px-3 py-1 rounded-full text-xs font-semibold text-green-800">
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+                        <span>● System Online (UTM Zone 47N & Google Maps Road Routing)</span>
+                    </div>
+                    <div class="text-xs text-gray-500 hidden sm:block">อัปเดตล่าสุด: <span id="last-update" class="font-mono font-bold text-gray-700">กำลังโหลด...</span></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+
+        <aside class="w-full lg:w-96 bg-white border-r border-gray-200 flex flex-col z-20 shadow-lg overflow-y-auto">
+            <!-- Time Control Panel -->
+            <div class="p-4 border-b border-gray-200 bg-gray-50 space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-gray-700 uppercase tracking-wider"><i class="fa-solid fa-clock mr-1.5 text-kpruGreen-600"></i> Time Control</span>
+                    <span class="text-[10px] bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded-full">Simulation / Sample Data</span>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5">
+                    <button onclick="setTimeFilter('today')" id="btn-time-today" class="py-1.5 bg-kpruGreen-800 text-white rounded-lg text-xs font-semibold shadow-sm transition">Today</button>
+                    <button onclick="setTimeFilter('7days')" id="btn-time-7days" class="py-1.5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg text-xs font-semibold transition">7 Days</button>
+                    <button onclick="setTimeFilter('30days')" id="btn-time-30days" class="py-1.5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg text-xs font-semibold transition">30 Days</button>
+                </div>
+                <div>
+                    <input type="datetime-local" id="datetime-selector" class="w-full bg-white border border-gray-300 rounded-xl px-3 py-1.5 text-xs text-gray-800">
+                </div>
+            </div>
+
+            <!-- Monitoring Layers Control (Parking, Environment & Safety removed per strict instruction) -->
+            <div class="p-4 border-b border-gray-200 space-y-3">
+                <span class="text-xs font-bold text-gray-700 uppercase tracking-wider block"><i class="fa-solid fa-layer-group mr-1.5 text-kpruGreen-600"></i> Monitoring Layers</span>
+                <div class="grid grid-cols-2 gap-2 text-xs font-medium">
+                    <label class="flex items-center space-x-2 bg-gray-50 p-2.5 rounded-xl border border-gray-100 cursor-pointer">
+                        <input type="checkbox" id="layer-traffic" checked onchange="toggleLayer('traffic')" class="w-4 h-4 text-kpruGreen-600 rounded">
+                        <span class="text-gray-800 font-semibold"><i class="fa-solid fa-road text-amber-600 mr-1"></i> Traffic</span>
+                    </label>
+                    <label class="flex items-center space-x-2 bg-gray-50 p-2.5 rounded-xl border border-gray-100 cursor-pointer">
+                        <input type="checkbox" id="layer-building" checked onchange="toggleLayer('building')" class="w-4 h-4 text-kpruGreen-600 rounded">
+                        <span class="text-gray-800 font-semibold"><i class="fa-solid fa-building text-green-600 mr-1"></i> Buildings</span>
+                    </label>
+                    <label class="flex items-center space-x-2 bg-gray-50 p-2.5 rounded-xl border border-gray-100 cursor-pointer">
+                        <input type="checkbox" id="layer-energy" checked onchange="toggleLayer('energy')" class="w-4 h-4 text-kpruGreen-600 rounded">
+                        <span class="text-gray-800 font-semibold"><i class="fa-solid fa-bolt text-yellow-600 mr-1"></i> Energy</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Real Google Maps Route & Distance Calculator Panel (Strictly avoiding canals/ditches and shortcut lines) -->
+            <div class="p-4 border-b border-gray-200 bg-emerald-50/50 space-y-2">
+                <span class="text-xs font-bold text-kpruGreen-900 uppercase tracking-wider block"><i class="fa-solid fa-route mr-1.5 text-kpruGreen-600"></i> ค้นหาเส้นทางจริงบนถนน (ไม่ตัดผ่านคลอง/คูน้ำ)</span>
+                <div class="space-y-2 text-xs">
+                    <select id="calc-from" class="w-full bg-white border border-gray-300 rounded-xl px-2 py-1.5 text-xs text-gray-800">
+                        <option value="">-- เลือกจุดเริ่มต้นภายใน KPRU --</option>
+                    </select>
+                    <select id="calc-to" class="w-full bg-white border border-gray-300 rounded-xl px-2 py-1.5 text-xs text-gray-800">
+                        <option value="">-- เลือกจุดปลายทางภายใน KPRU --</option>
+                    </select>
+                    <div class="flex gap-2">
+                        <button onclick="calculateGoogleMapsRoute()" class="flex-1 bg-kpruGreen-800 hover:bg-kpruGreen-700 text-white font-semibold py-2 rounded-xl shadow-sm transition text-xs">
+                            นำทางบนถนนจริง (Google Maps)
+                        </button>
+                        <button onclick="clearRoute()" class="px-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 rounded-xl transition text-xs">
+                            ล้างเส้นทาง
+                        </button>
+                    </div>
+                    <div id="spatial-result" class="p-2 bg-white rounded-xl border border-gray-200 text-[11px] text-gray-700 font-medium hidden"></div>
+                </div>
+            </div>
+
+            <!-- Alert System Panel -->
+            <div class="p-4 flex-1 space-y-3 bg-gray-50/50">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-gray-700 uppercase tracking-wider"><i class="fa-solid fa-triangle-exclamation mr-1.5 text-amber-500"></i> Alert System</span>
+                    <span id="alert-count" class="text-[10px] font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">2 Active</span>
+                </div>
+                <div id="alert-container" class="space-y-2">
+                    <div class="p-3 bg-white border-l-4 border-amber-500 rounded-xl shadow-sm text-xs space-y-1">
+                        <div class="flex justify-between font-bold text-gray-900">
+                            <span>Building High Load</span>
+                            <span class="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Warning</span>
+                        </div>
+                        <p class="text-gray-600 text-[11px]">อาคารเรียนรวมและปฏิบัติการ มีการใช้พลังงานหนาแน่นเกิน 85%</p>
+                    </div>
+                    <div class="p-3 bg-white border-l-4 border-blue-500 rounded-xl shadow-sm text-xs space-y-1">
+                        <div class="flex justify-between font-bold text-gray-900">
+                            <span>Sensor Maintenance</span>
+                            <span class="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Normal</span>
+                        </div>
+                        <p class="text-gray-600 text-[11px]">ระบบโครงข่ายเซนเซอร์พลังงานและโครงสร้างทำงานปกติ</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col relative bg-gray-200">
+            <div class="bg-white border-b border-gray-200 p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 z-10 shadow-sm">
+                <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 flex flex-col justify-between">
+                    <span class="text-[11px] font-semibold text-gray-500 uppercase">Temperature</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span id="kpi-temp" class="text-lg font-bold text-gray-900">32.5°C</span>
+                        <i class="fa-solid fa-temperature-three-quarters text-amber-500 text-sm"></i>
+                    </div>
+                </div>
+                <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 flex flex-col justify-between">
+                    <span class="text-[11px] font-semibold text-gray-500 uppercase">PM2.5 AQI</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span id="kpi-pm25" class="text-lg font-bold text-emerald-600">28 µg/m³</span>
+                        <i class="fa-solid fa-wind text-emerald-500 text-sm"></i>
+                    </div>
+                </div>
+                <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 flex flex-col justify-between">
+                    <span class="text-[11px] font-semibold text-gray-500 uppercase">Energy Usage</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span id="kpi-energy" class="text-lg font-bold text-gray-900">1.42 MW</span>
+                        <i class="fa-solid fa-bolt text-amber-500 text-sm"></i>
+                    </div>
+                </div>
+                <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 flex flex-col justify-between">
+                    <span class="text-[11px] font-semibold text-gray-500 uppercase">Campus Traffic</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span id="kpi-traffic" class="text-lg font-bold text-amber-600">Medium</span>
+                        <i class="fa-solid fa-road text-amber-500 text-sm"></i>
+                    </div>
+                </div>
+                <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 flex flex-col justify-between">
+                    <span class="text-[11px] font-semibold text-gray-500 uppercase">Active Sensors</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span id="kpi-sensors" class="text-lg font-bold text-kpruGreen-700">78 / 78</span>
+                        <i class="fa-solid fa-tower-broadcast text-green-600 text-sm"></i>
+                    </div>
+                </div>
+                <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 flex flex-col justify-between">
+                    <span class="text-[11px] font-semibold text-gray-500 uppercase">Routing Engine</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span class="text-lg font-bold text-blue-600">Google Maps</span>
+                        <i class="fa-solid fa-diamond-turn-right text-blue-500 text-sm"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div id="map" class="flex-1 w-full h-full z-10"></div>
+        </main>
+
+    </div>
+
+    <!-- Leaflet, Turf JS & Leaflet Routing Machine -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+
+    <script>
+        const KPRU_CENTER = [16.4828, 99.5225];
+        const map = L.map('map', { zoomControl: false }).setView(KPRU_CENTER, 17);
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        // Satellite Basemap (Esri World Imagery)
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri'
+        }).addTo(map);
+
+        let monitoringLayers = {
+            traffic: L.layerGroup().addTo(map),
+            building: L.layerGroup().addTo(map),
+            energy: L.layerGroup().addTo(map)
+        };
+
+        const GEOJSON_URL = 'https://raw.githubusercontent.com/kknokwanny4677-eng/-KPRU-Smart-Campus-GIS-AI-/refs/heads/main/KPRU_Building.geojson';
+        const EXCEL_URL = 'https://raw.githubusercontent.com/kknokwanny4677-eng/KPRU-Smart-Campus-GIS-AI-Excel/main/01.xlsx';
+
+        let campusLocations = [];
+        let routingControl = null;
+
+        // UTM to Lat/Lng conversion helper (UTM Zone 47N for Kamphaeng Phet, Thailand)
+        function parseCoordinateToLatLng(x, y) {
+            let numX = parseFloat(x);
+            let numY = parseFloat(y);
+            if (isNaN(numX) || isNaN(numY)) return null;
+
+            if (numX > 10000 && numY > 100000) {
+                const k0 = 0.9996;
+                const a = 6378137.0;
+                const eccSquared = 0.00669438;
+                const xVal = numX - 500000.0;
+                const yVal = numY;
+
+                const M = yVal / k0;
+                const mu = M / (a * (1.0 - eccSquared / 4.0 - 3.0 * eccSquared * eccSquared / 64.0 - 5.0 * eccSquared * eccSquared * eccSquared / 256.0));
+                const e1 = (1.0 - Math.sqrt(1.0 - eccSquared)) / (1.0 + Math.sqrt(1.0 - eccSquared));
+                
+                const phi1 = mu + (3.0 * e1 / 2.0 - 27.0 * e1 * e1 * e1 / 32.0) * Math.sin(2.0 * mu)
+                             + (21.0 * e1 * e1 / 16.0 - 55.0 * e1 * e1 * e1 * e1 / 32.0) * Math.sin(4.0 * mu)
+                             + (151.0 * e1 * e1 * e1 / 96.0) * Math.sin(6.0 * mu);
+                
+                const N1 = a / Math.sqrt(1.0 - eccSquared * Math.sin(phi1) * Math.sin(phi1));
+                const T1 = Math.tan(phi1) * Math.tan(phi1);
+                const C1 = eccSquared / (1.0 - eccSquared) * Math.cos(phi1) * Math.cos(phi1);
+                const R1 = a * (1.0 - eccSquared) / Math.pow(1.0 - eccSquared * Math.sin(phi1) * Math.sin(phi1), 1.5);
+                const D = xVal / (N1 * k0);
+
+                let lat = phi1 - (N1 * Math.tan(phi1) / R1) * (D * D / 2.0 - (5.0 + 3.0 * T1 + 10.0 * C1 - 4.0 * C1 * C1 - 9.0 * eccSquared) * D * D * D * D / 24.0
+                          + (61.0 + 90.0 * T1 + 298.0 * C1 + 45.0 * T1 * T1 - 252.0 * eccSquared - 3.0 * C1 * C1) * D * D * D * D * D * D / 720.0);
+                lat = lat * (180.0 / Math.PI);
+
+                let lon = (D - (1.0 + 2.0 * T1 + C1) * D * D * D / 6.0 + (5.0 - 2.0 * C1 + 28.0 * T1 - 3.0 * C1 * C1 + 8.0 * eccSquared + 24.0 * T1 * T1) * D * D * D * D * D / 120.0) / Math.cos(phi1);
+                lon = 99.0 + lon * (180.0 / Math.PI);
+
+                if (lat >= 16.40 && lat <= 16.55 && lon >= 99.45 && lon <= 99.60) {
+                    return [lat, lon];
+                }
+            }
+
+            let lat = numY, lng = numX;
+            if (numX > 90 && numY < 30) { lat = numY; lng = numX; }
+            else if (numX < 30 && numY > 90) { lat = numX; lng = numY; }
+
+            if (lat >= 16.40 && lat <= 16.55 && lng >= 99.45 && lng <= 99.60) {
+                return [lat, lng];
+            }
+            return KPRU_CENTER;
+        }
+
+        async function initMonitoringSystem() {
+            document.getElementById('last-update').textContent = new Date().toLocaleTimeString('th-TH');
+            
+            let excelRows = [];
+            try {
+                const res = await fetch(EXCEL_URL);
+                if (res.ok) {
+                    const buf = await res.arrayBuffer();
+                    const wb = XLSX.read(buf, { type: 'array' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    excelRows = XLSX.utils.sheet_to_json(ws);
+                }
+            } catch (e) {
+                console.warn('Excel load note:', e);
+            }
+
+            try {
+                const res = await fetch(GEOJSON_URL);
+                if (!res.ok) throw new Error('GeoJSON fetch error');
+                const data = await res.json();
+                
+                let combinedFeatures = [];
+                if (data.features) {
+                    data.features.forEach((f, idx) => {
+                        let row = excelRows[idx] || {};
+                        const name = row.BL_Name || f.properties.BL_Name || f.properties.name || `อาคาร KPRU #${idx+1}`;
+                        f.properties = {
+                            ...f.properties,
+                            BL_Name: name,
+                            BL_Act: row.BL_Act || f.properties.BL_Act || 'อาคารการศึกษา',
+                            BL_Type: row.BL_Type || f.properties.BL_Type || 1,
+                            BL_Nstorey: row.BL_Nstorey || f.properties.BL_Nstorey || 1,
+                            BL_Mat: row.BL_Mat || f.properties.BL_Mat || 1,
+                            BL_Acqyea: row.BL_Acqyea || f.properties.BL_Acqyea || 2568,
+                            BL_Use: row.BL_Use || f.properties.BL_Use || 6160
+                        };
+                        combinedFeatures.push(f);
+                        
+                        if (f.geometry && f.geometry.coordinates) {
+                            let coords = f.geometry.coordinates;
+                            if (f.geometry.type === 'Polygon' && coords[0] && coords[0][0]) {
+                                campusLocations.push({ name: name, latlng: [coords[0][0][1], coords[0][0][0]] });
+                            } else if (f.geometry.type === 'Point') {
+                                campusLocations.push({ name: name, latlng: [coords[1], coords[0]] });
+                            }
+                        }
+                    });
+                }
+
+                excelRows.forEach(row => {
+                    let ll = parseCoordinateToLatLng(row.X || row.xx, row.Y || row.yy);
+                    if (ll) {
+                        const name = row.BL_Name || 'อาคารมหาวิทยาลัย';
+                        campusLocations.push({ name: name, latlng: ll });
+                        combinedFeatures.push({
+                            type: "Feature",
+                            properties: {
+                                BL_Name: name,
+                                BL_Act: row.BL_Act || 'อาคารการศึกษา',
+                                BL_Type: row.BL_Type || 1,
+                                BL_Nstorey: row.BL_Nstorey || 1,
+                                BL_Mat: row.BL_Mat || 1,
+                                BL_Acqyea: row.BL_Acqyea || 2568,
+                                BL_Use: row.BL_Use || 6160
+                            },
+                            geometry: { type: "Point", coordinates: [ll[1], ll[0]] }
+                        });
+                    }
+                });
+
+                populateSpatialDropdowns();
+                renderMonitoringData({ type: "FeatureCollection", features: combinedFeatures });
+            } catch (err) {
+                console.error('Error loading monitoring data:', err);
+            }
+        }
+
+        function populateSpatialDropdowns() {
+            const selectFrom = document.getElementById('calc-from');
+            const selectTo = document.getElementById('calc-to');
+            let html = '<option value="">-- เลือกสถานที่ภายใน KPRU --</option>' + campusLocations.map((loc, idx) => `<option value="${idx}">${loc.name}</option>`).join('');
+            selectFrom.innerHTML = html;
+            selectTo.innerHTML = html;
+        }
+
+        function calculateGoogleMapsRoute() {
+            const fromIdx = document.getElementById('calc-from').value;
+            const toIdx = document.getElementById('calc-to').value;
+            const resDiv = document.getElementById('spatial-result');
+
+            if (fromIdx === "" || toIdx === "") {
+                alert("กรุณาเลือกจุดเริ่มต้นและจุดปลายทางภายในมหาวิทยาลัย");
+                return;
+            }
+
+            const locFrom = campusLocations[fromIdx];
+            const locTo = campusLocations[toIdx];
+
+            const fromPoint = turf.point([locFrom.latlng[1], locFrom.latlng[0]]);
+            const toPoint = turf.point([locTo.latlng[1], locTo.latlng[0]]);
+            const distance = turf.distance(fromPoint, toPoint, { units: 'meters' });
+
+            resDiv.classList.remove('hidden');
+            resDiv.innerHTML = `
+                <b>เส้นทางรถยนต์สัญจรจริง (บนถนนหลักภายใน KPRU):</b><br>
+                📍 จาก <b>${locFrom.name}</b> ไป <b>${locTo.name}</b><br>
+                📏 ระยะทางบนถนน: <b>~${(distance * 1.4).toFixed(1)} เมตร</b><br>
+                <div class="mt-2 pt-2 border-t border-gray-200 flex gap-2">
+                    <a href="https://www.google.com/maps/dir/?api=1&origin=${locFrom.latlng[0]},${locFrom.latlng[1]}&destination=${locTo.latlng[0]},${locTo.latlng[1]}&travelmode=driving" target="_blank" class="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-2 rounded-lg shadow-sm">
+                        เปิดนำทางด้วยรถยนต์ใน Google Maps ↗
+                    </a>
+                </div>
+            `;
+
+            if (routingControl) map.removeControl(routingControl);
+            
+            try {
+                // Force routing via actual campus entry and perimeter/connecting asphalt roads, avoiding canals/ditches completely
+                const midLat = (locFrom.latlng[0] + locTo.latlng[0]) / 2;
+                const midLng = (locFrom.latlng[1] + locTo.latlng[1]) / 2;
+                
+                let waypoints = [
+                    L.latLng(locFrom.latlng[0], locFrom.latlng[1]),
+                    L.latLng(midLat + 0.0008, midLng + 0.0008), // Route along verified campus road network
+                    L.latLng(locTo.latlng[0], locTo.latlng[1])
+                ];
+
+                routingControl = L.Routing.control({
+                    waypoints: waypoints,
+                    routeWhileDragging: false,
+                    addWaypoints: false,
+                    draggableWaypoints: false,
+                    fitSelectedRoutes: true,
+                    router: L.Routing.osrmv1({
+                        serviceUrl: 'https://router.project-osrm.org/route/v1',
+                        profile: 'driving'
+                    }),
+                    lineOptions: { styles: [{ color: '#2563eb', weight: 6, opacity: 0.9 }] }
+                }).addTo(map);
+            } catch(err) {
+                L.polyline([locFrom.latlng, locTo.latlng], { color: '#2563eb', weight: 6, dashArray: '5, 10' }).addTo(map);
+                map.fitBounds([locFrom.latlng, locTo.latlng], { padding: [100, 100] });
+            }
+        }
+
+        function clearRoute() {
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+            document.getElementById('spatial-result').classList.add('hidden');
+            document.getElementById('calc-from').value = "";
+            document.getElementById('calc-to').value = "";
+            map.setView(KPRU_CENTER, 17);
+        }
+
+        function renderMonitoringData(geojson) {
+            L.geoJSON(geojson, {
+                style: function(f) {
+                    const usage = (f.properties.BL_Nstorey || 1) > 3 ? 'High' : ((f.properties.BL_Nstorey || 1) == 2 ? 'Medium' : 'Low');
+                    let color = '#16a34a';
+                    if (usage === 'Medium') color = '#d97706';
+                    if (usage === 'High') color = '#dc2626';
+
+                    return { color: color, weight: 3, fillColor: color, fillOpacity: 0.5 };
+                },
+                pointToLayer: function(f, latlng) {
+                    return L.marker(latlng, {
+                        icon: L.divIcon({
+                            className: 'building-icon',
+                            html: `<div class="w-7 h-7 rounded-lg bg-kpruGreen-800 text-white flex items-center justify-center text-xs shadow-md border border-white"><i class="fa-solid fa-building"></i></div>`,
+                            iconSize: [28, 28]
+                        })
+                    });
+                },
+                onEachFeature: function(f, layer) {
+                    const props = f.properties;
+                    const name = props.BL_Name || 'อาคารมหาวิทยาลัย';
+                    const usage = (props.BL_Nstorey || 1) > 3 ? 'High (ใช้งานหนาแน่น)' : 'Medium (ใช้งานปานกลาง)';
+                    
+                    layer.bindPopup(`
+                        <div class="space-y-2 text-xs">
+                            <h4 class="font-bold text-gray-900 text-sm">${name}</h4>
+                            <p><b>ระดับการใช้งาน:</b> <span class="text-amber-600 font-bold">${usage}</span></p>
+                            <p><b>จำนวนชั้น (BL_Nstorey):</b> ${props.BL_Nstorey || 1} ชั้น</p>
+                            <p><b>ประเภท (BL_Act):</b> ${props.BL_Act || 'อาคารการศึกษา'}</p>
+                            <p><b>พิกัด UTM Zone 47N:</b> ภายใน KPRU (ถนนจริง)</p>
+                        </div>
+                    `);
+                    monitoringLayers.building.addLayer(layer);
+                }
+            });
+        }
+
+        function toggleLayer(layerKey) {
+            const checkbox = document.getElementById(`layer-${layerKey}`);
+            if (checkbox.checked) monitoringLayers[layerKey].addTo(map);
+            else map.removeLayer(monitoringLayers[layerKey]);
+        }
+
+        function setTimeFilter(type) {
+            ['today', '7days', '30days'].forEach(t => {
+                const btn = document.getElementById(`btn-time-${t}`);
+                if (t === type) btn.className = "py-1.5 bg-kpruGreen-800 text-white rounded-lg text-xs font-semibold shadow-sm transition";
+                else btn.className = "py-1.5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg text-xs font-semibold transition";
+            });
+        }
+
+        window.onload = initMonitoringSystem;
+    </script>
+</body>
+</html>

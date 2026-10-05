@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPRU Smart Campus GIS & AI - Map View</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- SheetJS for Excel Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        kpruGreen: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        kpruGold: {
+                            500: '#d97706',
+                            600: '#b45309',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        .leaflet-popup-content-wrapper {
+            border-radius: 1rem;
+            padding: 0.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .leaflet-popup-content {
+            margin: 12px 16px;
+            font-family: 'Prompt', sans-serif;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body class="h-full flex flex-col bg-gray-100 text-gray-800 overflow-hidden">
+
+    <header class="flex-none z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo & Brand -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-kpruGreen-800 rounded-xl flex items-center justify-center text-white shadow-md">
+                        <i class="fa-solid fa-map-location-dot text-xl text-amber-400"></i>
+                    </div>
+                    <div>
+                        <span class="text-lg font-bold text-kpruGreen-900 tracking-tight block">KPRU Smart Campus</span>
+                        <span class="text-[10px] font-medium text-kpruGold-600 uppercase tracking-widest">GIS & AI Platform</span>
+                    </div>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
+                    <a href="index.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50 transition-colors">
+                        <i class="fa-solid fa-house mr-1.5 text-kpruGreen-600"></i> Home
+                    </a>
+                    <a href="map.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-kpruGreen-800 bg-kpruGreen-50 transition-colors">
+                        <i class="fa-solid fa-map mr-1.5 text-kpruGreen-600"></i> Map View
+                    </a>
+                    <a href="monitoring.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50 transition-colors">
+                        <i class="fa-solid fa-chart-line mr-1.5 text-kpruGreen-600"></i> Monitoring
+                    </a>
+                    <a href="dashboard.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50 transition-colors">
+                        <i class="fa-solid fa-gauge-high mr-1.5 text-kpruGreen-600"></i> Dashboard
+                    </a>
+                    <a href="maptool.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50 transition-colors">
+                        <i class="fa-solid fa-toolbox mr-1.5 text-kpruGreen-600"></i> Maptool
+                    </a>
+                </nav>
+
+                <!-- Status Badge -->
+                <div class="flex items-center space-x-3">
+                    <div id="data-status-badge" class="hidden sm:flex items-center space-x-1.5 bg-green-50 border border-green-200 text-green-800 px-3 py-1 rounded-full text-xs font-semibold">
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+                        <span id="status-text">Loading KPRU GIS & Excel Data (X, Y Linked)...</span>
+                    </div>
+                    <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-b border-gray-200 px-4 pt-2 pb-4 space-y-1 shadow-lg">
+            <a href="index.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"><i class="fa-solid fa-house mr-2 text-kpruGreen-600"></i> Home</a>
+            <a href="map.html" class="block px-3 py-2 rounded-md text-base font-medium text-kpruGreen-800 bg-kpruGreen-50"><i class="fa-solid fa-map mr-2 text-kpruGreen-600"></i> Map View</a>
+            <a href="monitoring.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"><i class="fa-solid fa-chart-line mr-2 text-kpruGreen-600"></i> Monitoring</a>
+            <a href="dashboard.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"><i class="fa-solid fa-gauge-high mr-2 text-kpruGreen-600"></i> Dashboard</a>
+            <a href="maptool.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"><i class="fa-solid fa-toolbox mr-2 text-kpruGreen-600"></i> Maptool</a>
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- Left GIS Sidebar -->
+        <aside id="gis-sidebar" class="w-full sm:w-96 bg-white border-r border-gray-200 flex flex-col z-20 shadow-xl transition-all duration-300 absolute lg:relative inset-y-0 left-0 transform -translate-x-full lg:translate-x-0">
+            <div class="flex border-b border-gray-200 bg-gray-50">
+                <button onclick="switchTab('search')" id="tab-search-btn" class="flex-1 py-3 px-2 text-xs font-bold text-kpruGreen-800 border-b-2 border-kpruGreen-600 bg-white transition-colors flex items-center justify-center space-x-1">
+                    <i class="fa-solid fa-magnifying-glass"></i><span>ค้นหา</span>
+                </button>
+                <button onclick="switchTab('layers')" id="tab-layers-btn" class="flex-1 py-3 px-2 text-xs font-semibold text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors flex items-center justify-center space-x-1">
+                    <i class="fa-solid fa-layer-group"></i><span>ชั้นข้อมูล</span>
+                </button>
+                <button onclick="switchTab('routing')" id="tab-routing-btn" class="flex-1 py-3 px-2 text-xs font-semibold text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors flex items-center justify-center space-x-1">
+                    <i class="fa-solid fa-route"></i><span>นำทาง</span>
+                </button>
+                <button onclick="switchTab('nearest')" id="tab-nearest-btn" class="flex-1 py-3 px-2 text-xs font-semibold text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors flex items-center justify-center space-x-1">
+                    <i class="fa-solid fa-compass"></i><span>ใกล้ฉัน</span>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                <!-- Tab 1: Smart Search -->
+                <div id="panel-search" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Smart Campus Search (BL_Name)</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
+                                <i class="fa-solid fa-search"></i>
+                            </span>
+                            <input type="text" id="search-input" oninput="handleSearchInput(this.value)" placeholder="ค้นหาชื่ออาคาร (BL_Name)..." class="w-full bg-gray-50 border border-gray-300 focus:border-kpruGreen-600 focus:bg-white text-gray-800 text-sm rounded-xl pl-10 pr-10 py-3 focus:outline-none transition-colors">
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">ผลการค้นหา (<span id="result-count">0</span>)</span>
+                            <span class="text-[11px] text-kpruGreen-700 font-semibold">Excel X,Y Linked</span>
+                        </div>
+                        <div id="search-results-list" class="space-y-2">
+                            <div class="text-center py-8 text-gray-400 text-sm">
+                                <i class="fa-solid fa-map-location-dot text-3xl mb-2 text-gray-300"></i>
+                                <p>กำลังโหลดข้อมูลอาคารจาก GeoJSON และ Excel...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Layers Control -->
+                <div id="panel-layers" class="space-y-4 hidden">
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider">Basemap Selector (Satellite / OSM)</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="setBasemap('satellite')" id="btn-basemap-satellite" class="p-2.5 rounded-xl border-2 border-kpruGreen-600 bg-kpruGreen-50 text-kpruGreen-900 text-xs font-semibold flex flex-col items-center space-y-1 transition-all">
+                            <i class="fa-solid fa-satellite text-base text-kpruGreen-600"></i>
+                            <span>ภาพถ่ายดาวเทียม (Esri)</span>
+                        </button>
+                        <button onclick="setBasemap('osm')" id="btn-basemap-osm" class="p-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-700 text-xs font-semibold flex flex-col items-center space-y-1 transition-all hover:border-gray-300">
+                            <i class="fa-solid fa-map text-base text-blue-600"></i>
+                            <span>OpenStreetMap</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Smart Routing -->
+                <div id="panel-routing" class="space-y-4 hidden">
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Smart Campus Navigation</label>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-600 mb-1">จุดเริ่มต้น</label>
+                            <select id="route-start" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-800">
+                                <option value="my_location">📍 ตำแหน่งปัจจุบันของคุณ (GPS)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-600 mb-1">ปลายทาง (BL_Name)</label>
+                            <select id="route-end" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-800">
+                                <option value="">-- เลือกอาคารปลายทาง --</option>
+                            </select>
+                        </div>
+                        <button onclick="calculateRoute()" class="w-full bg-kpruGreen-800 hover:bg-kpruGreen-700 text-white font-semibold py-3 rounded-xl shadow-md transition-all text-xs">
+                            คำนวณเส้นทางอัจฉริยะ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Nearest Facility -->
+                <div id="panel-nearest" class="space-y-4 hidden">
+                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Nearest Facility Finder</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="findNearest('ห้องน้ำ')" class="p-3 bg-gray-50 hover:bg-kpruGreen-50 border border-gray-200 rounded-xl text-left text-xs font-bold text-gray-800">ห้องน้ำ</button>
+                        <button onclick="findNearest('ATM')" class="p-3 bg-gray-50 hover:bg-kpruGreen-50 border border-gray-200 rounded-xl text-left text-xs font-bold text-gray-800">ตู้ ATM</button>
+                        <button onclick="findNearest('โรงอาหาร')" class="p-3 bg-gray-50 hover:bg-kpruGreen-50 border border-gray-200 rounded-xl text-left text-xs font-bold text-gray-800">โรงอาหาร</button>
+                        <button onclick="findNearest('ที่จอดรถ')" class="p-3 bg-gray-50 hover:bg-kpruGreen-50 border border-gray-200 rounded-xl text-left text-xs font-bold text-gray-800">ที่จอดรถ</button>
+                    </div>
+                    <div id="nearest-results-container" class="mt-4 space-y-2"></div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 relative bg-gray-200">
+            <div id="map" class="w-full h-full z-10"></div>
+
+            <div class="absolute top-4 right-4 z-20 flex flex-col space-y-2">
+                <button onclick="locateUser()" class="w-11 h-11 bg-white hover:bg-gray-50 text-gray-700 rounded-xl shadow-lg border border-gray-200 flex items-center justify-center transition-all" title="ตำแหน่งของฉัน">
+                    <i class="fa-solid fa-location-crosshairs text-kpruGreen-600 text-lg"></i>
+                </button>
+                <button onclick="resetMapView()" class="w-11 h-11 bg-white hover:bg-gray-50 text-gray-700 rounded-xl shadow-lg border border-gray-200 flex items-center justify-center transition-all" title="รีเซ็ตมุมมองมหาวิทยาลัย">
+                    <i class="fa-solid fa-house-chimney text-kpruGreen-600 text-lg"></i>
+                </button>
+            </div>
+
+            <div class="absolute bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-20 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg border border-gray-200 flex items-center space-x-4 text-xs font-medium text-gray-600">
+                <div>Lat/Lng: <span id="status-latlng" class="font-mono text-gray-800">16.4828, 99.5225</span></div>
+                <div>Zoom: <span id="status-zoom" class="font-mono text-gray-800">17</span></div>
+            </div>
+        </main>
+
+        <aside id="info-panel" class="w-full sm:w-96 bg-white border-l border-gray-200 flex flex-col z-30 shadow-2xl absolute lg:relative inset-y-0 right-0 transform translate-x-full lg:translate-x-full transition-all duration-300">
+            <div class="p-4 bg-kpruGreen-800 text-white flex justify-between items-center">
+                <span class="font-bold text-sm">ข้อมูลอาคาร (Excel Database Linked)</span>
+                <button onclick="closeInfoPanel()" class="text-white/80 hover:text-white p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="info-panel-content" class="flex-1 overflow-y-auto p-5 space-y-5">
+                <div class="text-center py-12 text-gray-400">
+                    <i class="fa-solid fa-hand-pointer text-4xl mb-3 text-gray-300"></i>
+                    <p class="text-sm">คลิกที่ขอบเขตตึกหรือ Marker บนแผนที่เพื่อดูข้อมูล Excel (BL_Name, BL_Act, BL_Nstorey, X, Y)</p>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Leaflet & Turf JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+
+    <script>
+        document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        });
+
+        function switchTab(tabName) {
+            ['search', 'layers', 'routing', 'nearest'].forEach(t => {
+                document.getElementById(`panel-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}-btn`).classList.remove('border-kpruGreen-600', 'text-kpruGreen-800', 'bg-white');
+                document.getElementById(`tab-${t}-btn`).classList.add('border-transparent', 'text-gray-600');
+            });
+            document.getElementById(`panel-${tabName}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabName}-btn`).classList.remove('border-transparent', 'text-gray-600');
+            document.getElementById(`tab-${tabName}-btn`).classList.add('border-kpruGreen-600', 'text-kpruGreen-800', 'bg-white');
+        }
+
+        // Exact Verified Center for KPRU Kamphaeng Phet
+        const KPRU_CENTER = [16.4828, 99.5225];
+        const map = L.map('map', { zoomControl: false }).setView(KPRU_CENTER, 17);
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        const basemaps = {
+            satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles &copy; Esri'
+            }),
+            osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' })
+        };
+        let currentBasemap = basemaps.satellite.addTo(map);
+
+        function setBasemap(type) {
+            map.removeLayer(currentBasemap);
+            currentBasemap = basemaps[type];
+            currentBasemap.addTo(map);
+        }
+
+        let campusGeoJSONLayer = null;
+        let allCampusFeatures = [];
+        let userLocationMarker = null;
+        let activeHighlightedLayer = null;
+
+        const GEOJSON_URL = 'https://raw.githubusercontent.com/kknokwanny4677-eng/-KPRU-Smart-Campus-GIS-AI-/refs/heads/main/KPRU_Building.geojson';
+        const EXCEL_URL = 'https://raw.githubusercontent.com/kknokwanny4677-eng/KPRU-Smart-Campus-GIS-AI-Excel/main/01.xlsx';
+
+        async function loadCampusData() {
+            let excelMap = {};
+            try {
+                const excelRes = await fetch(EXCEL_URL);
+                if (excelRes.ok) {
+                    const arrayBuffer = await excelRes.arrayBuffer();
+                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    jsonData.forEach(row => {
+                        const nameKey = String(row.BL_Name || row.name || '').trim();
+                        if (nameKey) excelMap[nameKey] = row;
+                    });
+                }
+            } catch (e) {
+                console.warn('Excel parse note:', e);
+            }
+
+            try {
+                const response = await fetch(GEOJSON_URL);
+                if (!response.ok) throw new Error('GeoJSON fetch error');
+                const data = await response.json();
+                
+                if (data.features && data.features.length > 0) {
+                    data.features.forEach((f, idx) => {
+                        if (!f.properties) f.properties = {};
+                        
+                        let rawName = f.properties.BL_Name || f.properties.name || f.properties.title || `อาคาร KPRU #${idx + 1}`;
+                        let mergedProps = { ...f.properties, BL_Name: rawName };
+
+                        // Link Excel attributes using BL_Name or approximate index
+                        if (excelMap[rawName]) {
+                            mergedProps = { ...mergedProps, ...excelMap[rawName] };
+                        } else if (Object.keys(excelMap).length > idx) {
+                            const keys = Object.keys(excelMap);
+                            mergedProps = { ...mergedProps, ...excelMap[keys[idx]] };
+                        }
+                        f.properties = mergedProps;
+                    });
+                    allCampusFeatures = data.features;
+                }
+
+                // If Excel rows have X and Y coordinates not in GeoJSON, add them as marker points
+                try {
+                    const excelRes = await fetch(EXCEL_URL);
+                    if (excelRes.ok) {
+                        const arrayBuffer = await excelRes.arrayBuffer();
+                        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        
+                        jsonData.forEach(row => {
+                            const x = parseFloat(row.X || row.xx);
+                            const y = parseFloat(row.Y || row.yy);
+                            if (!isNaN(x) && !isNaN(y)) {
+                                allCampusFeatures.push({
+                                    type: "Feature",
+                                    properties: {
+                                        BL_Name: row.BL_Name || 'อาคารมหาวิทยาลัย',
+                                        BL_Act: row.BL_Act || 'อาคาร',
+                                        BL_Type: row.BL_Type || 1,
+                                        BL_Nstorey: row.BL_Nstorey || 1,
+                                        BL_Mat: row.BL_Mat || 1,
+                                        BL_Acqyea: row.BL_Acqyea || 2568,
+                                        BL_Use: row.BL_Use || 6160,
+                                        X: x,
+                                        Y: y
+                                    },
+                                    geometry: { type: "Point", coordinates: [x, y] }
+                                });
+                            }
+                        });
+                    }
+                } catch(ex) {}
+
+                processGeoJSON({ type: "FeatureCollection", features: allCampusFeatures });
+                document.getElementById('status-text').textContent = `Loaded ${allCampusFeatures.length} KPRU GIS & Excel Features (X, Y Linked)`;
+            } catch (error) {
+                console.error('Error loading GeoJSON:', error);
+                document.getElementById('status-text').textContent = 'Error loading GIS data';
+            }
+        }
+
+        function processGeoJSON(data) {
+            if (campusGeoJSONLayer) map.removeLayer(campusGeoJSONLayer);
+
+            campusGeoJSONLayer = L.geoJSON(data, {
+                style: function(feature) {
+                    return {
+                        color: '#15803d',
+                        weight: 3,
+                        fillColor: '#22c55e',
+                        fillOpacity: 0.4
+                    };
+                },
+                pointToLayer: function(feature, latlng) {
+                    return L.marker(latlng, {
+                        icon: L.divIcon({
+                            className: 'excel-marker',
+                            html: `<div class="w-7 h-7 rounded-xl bg-kpruGreen-800 text-amber-400 flex items-center justify-center shadow-md font-bold text-xs border-2 border-white"><i class="fa-solid fa-building"></i></div>`,
+                            iconSize: [28, 28],
+                            iconAnchor: [14, 14]
+                        })
+                    });
+                },
+                onEachFeature: function (feature, layer) {
+                    layer.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        highlightBuilding(feature, layer);
+                    });
+                }
+            }).addTo(map);
+
+            populateRouteDropdowns();
+            renderSearchResults(allCampusFeatures);
+        }
+
+        function highlightBuilding(feature, layer) {
+            const props = feature.properties || {};
+            const buildingName = props.BL_Name || props.name || 'อาคารมหาวิทยาลัยราชภัฏกำแพงเพชร';
+
+            if (activeHighlightedLayer && campusGeoJSONLayer) {
+                campusGeoJSONLayer.resetStyle(activeHighlightedLayer);
+            }
+            if (layer && layer.setStyle) {
+                layer.setStyle({
+                    color: '#d97706',
+                    weight: 4,
+                    fillColor: '#fbbf24',
+                    fillOpacity: 0.7
+                });
+                activeHighlightedLayer = layer;
+            }
+
+            document.getElementById('info-panel').classList.remove('translate-x-full');
+            document.getElementById('info-panel').classList.remove('lg:translate-x-full');
+            
+            document.getElementById('info-panel-content').innerHTML = `
+                <div class="space-y-4">
+                    <div class="relative h-40 rounded-2xl overflow-hidden shadow-md bg-kpruGreen-50 flex items-center justify-center text-kpruGreen-800">
+                        <i class="fa-solid fa-building-columns text-5xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-semibold text-kpruGreen-700 uppercase tracking-wider">รหัสกิจกรรม: ${props.BL_Act || 'อาคารการศึกษา'}</span>
+                        <h2 class="text-xl font-bold text-gray-900 mt-1">${buildingName}</h2>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                            <span class="text-gray-400 block font-medium">จำนวนชั้น (BL_Nstorey)</span>
+                            <span class="font-bold text-gray-800 text-sm">${props.BL_Nstorey || 1} ชั้น</span>
+                        </div>
+                        <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                            <span class="text-gray-400 block font-medium">ประเภท (BL_Type)</span>
+                            <span class="font-bold text-gray-800 text-sm">${props.BL_Type || 1}</span>
+                        </div>
+                    </div>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                            <span class="text-gray-500 font-medium">วัสดุ/โครงสร้าง (BL_Mat):</span>
+                            <span class="font-bold text-gray-800">${props.BL_Mat || 'คอนกรีตเสริมเหล็ก'}</span>
+                        </div>
+                        <div class="flex justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                            <span class="text-gray-500 font-medium">ปีที่สำรวจ (BL_Acqyea):</span>
+                            <span class="font-bold text-gray-800">${props.BL_Acqyea || 2568}</span>
+                        </div>
+                        <div class="flex justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                            <span class="text-gray-500 font-medium">รหัสการใช้ประโยชน์ (BL_Use):</span>
+                            <span class="font-bold text-gray-800">${props.BL_Use || 6160}</span>
+                        </div>
+                        <div class="flex justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                            <span class="text-gray-500 font-medium">พิกัด X, Y (Excel):</span>
+                            <span class="font-mono text-gray-800">${props.X || props.Y ? `${props.X || ''}, ${props.Y || ''}` : 'เชื่อมโยงจาก GeoJSON'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            if (layer && layer.getBounds) {
+                map.fitBounds(layer.getBounds(), { padding: [50, 50], maxZoom: 18 });
+            } else if (layer && layer.getLatLng) {
+                map.setView(layer.getLatLng(), 18, { animate: true });
+            } else if (feature.geometry && feature.geometry.coordinates) {
+                if (feature.geometry.type === 'Point') {
+                    const coords = feature.geometry.coordinates;
+                    map.setView([coords[1], coords[0]], 18, { animate: true });
+                }
+            }
+        }
+
+        function closeInfoPanel() {
+            document.getElementById('info-panel').classList.add('translate-x-full');
+            document.getElementById('info-panel').classList.add('lg:translate-x-full');
+            if (activeHighlightedLayer && campusGeoJSONLayer) {
+                campusGeoJSONLayer.resetStyle(activeHighlightedLayer);
+                activeHighlightedLayer = null;
+            }
+        }
+
+        function renderSearchResults(features) {
+            const container = document.getElementById('search-results-list');
+            document.getElementById('result-count').textContent = features.length;
+            container.innerHTML = features.map((f, idx) => `
+                <div onclick="selectSearchResult(${idx})" class="p-3 bg-gray-50 hover:bg-kpruGreen-50 border border-gray-100 rounded-xl cursor-pointer transition-all flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-kpruGreen-100 text-kpruGreen-700 flex items-center justify-center text-base"><i class="fa-solid fa-building"></i></div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-xs font-bold text-gray-900 truncate">${f.properties.BL_Name || 'อาคาร'}</h4>
+                        <p class="text-[11px] text-gray-500">ชั้น: ${f.properties.BL_Nstorey || 1} • BL_Act: ${f.properties.BL_Act || '-'}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectSearchResult(idx) {
+            const feature = allCampusFeatures[idx];
+            if (feature) {
+                let targetLayer = null;
+                campusGeoJSONLayer.eachLayer(l => {
+                    if (l.feature === feature) targetLayer = l;
+                });
+                highlightBuilding(feature, targetLayer);
+            }
+        }
+
+        function handleSearchInput(query) {
+            if (!query.trim()) {
+                renderSearchResults(allCampusFeatures);
+                return;
+            }
+            const filtered = allCampusFeatures.filter(f => (f.properties.BL_Name || '').toLowerCase().includes(query.toLowerCase()));
+            renderSearchResults(filtered);
+        }
+
+        function populateRouteDropdowns() {
+            const endSelect = document.getElementById('route-end');
+            endSelect.innerHTML = '<option value="">-- เลือกสถานที่ปลายทาง --</option>' + 
+                allCampusFeatures.map((f, idx) => `<option value="${idx}">${f.properties.BL_Name || 'อาคาร ' + (idx+1)}</option>`).join('');
+        }
+
+        function locateUser() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const userLatLng = [position.coords.latitude, position.coords.longitude];
+                    if (userLocationMarker) map.removeLayer(userLocationMarker);
+                    userLocationMarker = L.marker(userLatLng, {
+                        icon: L.divIcon({
+                            className: 'user-gps',
+                            html: `<div class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center border-2 border-white shadow-lg animate-pulse"><i class="fa-solid fa-user text-xs"></i></div>`,
+                            iconSize: [24, 24]
+                        })
+                    }).addTo(map).bindPopup('ตำแหน่งของคุณ').openPopup();
+                    map.setView(userLatLng, 17);
+                });
+            }
+        }
+
+        function resetMapView() { map.setView(KPRU_CENTER, 17); }
+
+        map.on('mousemove', e => {
+            document.getElementById('status-latlng').textContent = `${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
+        });
+        map.on('zoomend', () => { document.getElementById('status-zoom').textContent = map.getZoom(); });
+
+        window.onload = loadCampusData;
+    </script>
+</body>
+</html>

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPRU Smart Campus Dashboard - Spatial Intelligence & Campus Analytics</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <!-- SheetJS for Excel Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        kpruGreen: { 50: '#f0fdf4', 100: '#dcfce7', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d' },
+                        kpruGold: { 500: '#d97706', 600: '#b45309' }
+                    },
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body class="h-full flex flex-col bg-gray-100 text-gray-800">
+
+    <header class="flex-none z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-kpruGreen-800 rounded-xl flex items-center justify-center text-white shadow-md">
+                        <i class="fa-solid fa-gauge-high text-xl text-amber-400"></i>
+                    </div>
+                    <div>
+                        <span class="text-lg font-bold text-kpruGreen-900 tracking-tight block">KPRU Smart Campus Dashboard</span>
+                        <span class="text-[10px] font-medium text-kpruGold-600 uppercase tracking-widest">Spatial Intelligence & Campus Analytics</span>
+                    </div>
+                </div>
+
+                <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
+                    <a href="index.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50"><i class="fa-solid fa-house mr-1.5 text-kpruGreen-600"></i> Home</a>
+                    <a href="map.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50"><i class="fa-solid fa-map mr-1.5 text-kpruGreen-600"></i> Map View</a>
+                    <a href="monitoring.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50"><i class="fa-solid fa-chart-line mr-1.5 text-kpruGreen-600"></i> Monitoring</a>
+                    <a href="dashboard.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-kpruGreen-800 bg-kpruGreen-50"><i class="fa-solid fa-gauge-high mr-1.5 text-kpruGreen-600"></i> Dashboard</a>
+                    <a href="maptool.html" class="px-3.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-kpruGreen-800 hover:bg-gray-50"><i class="fa-solid fa-toolbox mr-1.5 text-kpruGreen-600"></i> Maptool</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+        <!-- Global Filters Bar with Calculate Button -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"><i class="fa-solid fa-calendar mr-1 text-kpruGreen-600"></i> Date Filter</label>
+                <input type="date" id="filter-date" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-kpruGreen-600">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"><i class="fa-solid fa-building mr-1 text-kpruGreen-600"></i> Building Type</label>
+                <select id="filter-building-type" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-kpruGreen-600">
+                    <option value="all">ทั้งหมด (All Types)</option>
+                    <option value="academic">อาคารเรียน (Academic)</option>
+                    <option value="administration">สำนักงาน (Administration)</option>
+                    <option value="service">บริการ (Service)</option>
+                    <option value="sport">กีฬา (Sport)</option>
+                    <option value="dormitory">หอพัก (Dormitory)</option>
+                    <option value="other">อื่นๆ (Other)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"><i class="fa-solid fa-map-location-dot mr-1 text-kpruGreen-600"></i> Campus Zone</label>
+                <select id="filter-zone" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-kpruGreen-600">
+                    <option value="all">ทุกโซนในมหาวิทยาลัย</option>
+                    <option value="north">โซนทิศเหนือ (อาคารเรียนรวม)</option>
+                    <option value="central">โซนกลาง (หอสมุด/สระน้ำ)</option>
+                    <option value="south">โซนทิศใต้ (สนามกีฬา/หอประชุม)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"><i class="fa-solid fa-layer-group mr-1 text-kpruGreen-600"></i> Facility Type</label>
+                <select id="filter-facility" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-kpruGreen-600">
+                    <option value="all">ทุกประเภทสิ่งอำนวยความสะดวก</option>
+                    <option value="parking">ที่จอดรถ (Parking)</option>
+                    <option value="canteen">โรงอาหาร (Canteen)</option>
+                    <option value="sport">สนามกีฬา (Sport)</option>
+                    <option value="toilet">ห้องน้ำ (Toilet)</option>
+                </select>
+            </div>
+            <div>
+                <button onclick="triggerGlobalCalculation()" class="w-full bg-kpruGreen-800 hover:bg-kpruGreen-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-calculator"></i><span>เริ่มคำนวณ</span>
+                </button>
+            </div>
+            <div>
+                <button onclick="resetGlobalFilters()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2.5 rounded-xl text-xs transition flex items-center justify-center space-x-1">
+                    <i class="fa-solid fa-rotate-right"></i><span>รีเซ็ตตัวกรอง</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 8 KPI Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Buildings</span>
+                        <h3 id="kpi-buildings" class="text-2xl font-bold text-gray-900 mt-1">78</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-green-50 text-kpruGreen-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-building"></i></div>
+                </div>
+                <span class="text-[11px] text-emerald-600 font-semibold mt-2"><i class="fa-solid fa-arrow-trend-up mr-1"></i> +2.6% จากปีที่แล้ว</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Campus Area</span>
+                        <h3 id="kpi-area" class="text-2xl font-bold text-gray-900 mt-1">420 ไร่</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-map"></i></div>
+                </div>
+                <span class="text-[11px] text-blue-600 font-semibold mt-2"><i class="fa-solid fa-check mr-1"></i> พื้นที่สมบูรณ์ 100%</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Green Area</span>
+                        <h3 id="kpi-green" class="text-2xl font-bold text-gray-900 mt-1">145 ไร่</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-tree"></i></div>
+                </div>
+                <span class="text-[11px] text-emerald-600 font-semibold mt-2"><i class="fa-solid fa-arrow-trend-up mr-1"></i> 34.5% สัดส่วนสีเขียว</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Parking Capacity</span>
+                        <h3 id="kpi-parking" class="text-2xl font-bold text-gray-900 mt-1">1,250 คัน</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-square-parking"></i></div>
+                </div>
+                <span class="text-[11px] text-amber-600 font-semibold mt-2"><i class="fa-solid fa-chart-pie mr-1"></i> รองรับเพียงพอ</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Facilities</span>
+                        <h3 id="kpi-facilities" class="text-2xl font-bold text-gray-900 mt-1">48 จุด</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-icons"></i></div>
+                </div>
+                <span class="text-[11px] text-purple-600 font-semibold mt-2"><i class="fa-solid fa-circle-check mr-1"></i> พร้อมใช้งาน</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Road Length</span>
+                        <h3 id="kpi-road" class="text-2xl font-bold text-gray-900 mt-1">18.4 กม.</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-road"></i></div>
+                </div>
+                <span class="text-[11px] text-indigo-600 font-semibold mt-2"><i class="fa-solid fa-road mr-1"></i> ยางมะตอย/คอนกรีต</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Walkway Length</span>
+                        <h3 id="kpi-walkway" class="text-2xl font-bold text-gray-900 mt-1">12.2 กม.</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-person-walking"></i></div>
+                </div>
+                <span class="text-[11px] text-teal-600 font-semibold mt-2"><i class="fa-solid fa-check mr-1"></i> ทางเท้าหลังคาคลุม</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Active Sensors</span>
+                        <h3 id="kpi-sensors" class="text-2xl font-bold text-gray-900 mt-1">78 / 78</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-tower-broadcast"></i></div>
+                </div>
+                <span class="text-[11px] text-emerald-600 font-semibold mt-2"><i class="fa-solid fa-signal mr-1"></i> 100% Online</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Mini GIS Map -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider"><i class="fa-solid fa-map-location-dot mr-1 text-kpruGreen-600"></i> Mini Interactive GIS Map</h4>
+                    <span class="text-[10px] bg-green-50 text-kpruGreen-700 font-semibold px-2 py-0.5 rounded-full">Filter Synced</span>
+                </div>
+                <div id="mini-map" class="w-full h-64 rounded-xl z-10"></div>
+            </div>
+
+            <!-- AI Campus Insight Panel -->
+            <div class="lg:col-span-2 bg-gradient-to-br from-kpruGreen-900 to-kpruGreen-800 text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 text-white/5 text-9xl pointer-events-none"><i class="fa-solid fa-robot"></i></div>
+                <div class="space-y-3 relative z-10">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                        <h3 class="font-bold text-sm text-amber-300 uppercase tracking-widest">AI Campus Insight & Spatial Analysis</h3>
+                    </div>
+                    <div id="ai-insight-content" class="space-y-2 text-xs text-emerald-100 font-light leading-relaxed">
+                        <p>🤖 <b>วิเคราะห์ข้อมูลเชิงพื้นที่อัตโนมัติประจำวัน:</b></p>
+                        <ul class="list-disc pl-4 space-y-1">
+                            <li><b>พื้นที่ที่มีการใช้งานสูง (High Usage):</b> อาคารเรียนรวมและปฏิบัติการมีอัตราการใช้พลังงานและการสัญจรหนาแน่นสูงสุดในช่วงเวลา 10:00 - 15:00 น.</li>
+                            <li><b>อาคารที่ใช้พลังงานสูง (High Energy):</b> อาคารวิทยาศาสตร์และเทคโนโลยีใช้พลังงานไฟฟ้าสูงสุด (เฉลี่ย 340 kWh/วัน) แนะนำเพิ่มประสิทธิภาพระบบปรับอากาศ</li>
+                            <li><b>บริเวณที่ขาดพื้นที่สีเขียว (Green Deficiency):</b> บริเวณลานจอดรถโซนทิศใต้มีความหนาแน่นของเกาะคอนกรีตสูง แนะนำเพิ่มการปลูกรุกขชาติเพื่อลดอุณหภูมิเกาะความร้อน</li>
+                            <li><b>ที่จอดรถที่มีการใช้งานสูง (Parking Congestion):</b> ลานจอดรถหน้าหอสมุดมีอัตราการใช้งานเต็ม 100% ระหว่าง 09:00 - 11:00 น. ควรกระจายรถไปลานจอดสนามกีฬา</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-emerald-700/50 flex justify-between items-center text-xs text-emerald-200 relative z-10">
+                    <span>อัปเดตสถานะแบบ Real-Time จากฐานข้อมูล GeoJSON & Excel</span>
+                    <button onclick="refreshAiInsights()" class="bg-amber-500 hover:bg-amber-600 text-gray-950 font-bold px-3 py-1.5 rounded-lg shadow transition">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> สรุปผลใหม่ด้วย AI
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6 Required Charts -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Chart 1: Building Classification (Donut) -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider">1. Building Classification</h4>
+                    <span class="text-[10px] text-gray-400">Donut Chart</span>
+                </div>
+                <div class="flex-1 relative flex items-center justify-center" style="height: 220px;">
+                    <canvas id="chartBuildingType"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 2: Land Use Proportion (Pie) -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider">2. Land Use Proportion</h4>
+                    <span class="text-[10px] text-gray-400">Pie Chart</span>
+                </div>
+                <div class="flex-1 relative flex items-center justify-center" style="height: 220px;">
+                    <canvas id="chartLandUse"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 3: Building Usage Level (Bar) -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider">3. Building Usage Level</h4>
+                    <span class="text-[10px] text-gray-400">Bar Chart</span>
+                </div>
+                <div class="flex-1 relative flex items-center justify-center" style="height: 220px;">
+                    <canvas id="chartBuildingUsage"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 4: Parking Usage (Donut) -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider">4. Parking Usage (Available / Occupied)</h4>
+                    <span class="text-[10px] text-gray-400">Donut Chart</span>
+                </div>
+                <div class="flex-1 relative flex items-center justify-center" style="height: 220px;">
+                    <canvas id="chartParking"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 5: Environmental Monitoring (Line with variable selector) -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider">5. Environmental Monitoring</h4>
+                    <select id="env-variable-select" onchange="updateEnvChart()" class="bg-gray-50 border border-gray-300 rounded-lg px-2 py-1 text-[11px] text-gray-800 focus:outline-none">
+                        <option value="temp">Temperature (°C)</option>
+                        <option value="humidity">Humidity (%)</option>
+                        <option value="pm25" selected>PM2.5 (µg/m³)</option>
+                        <option value="aqi">AQI Index</option>
+                        <option value="noise">Noise (dB)</option>
+                    </select>
+                </div>
+                <div class="flex-1 relative flex items-center justify-center" style="height: 200px;">
+                    <canvas id="chartEnvironment"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 6: Energy Consumption (Area Chart) -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider">6. Energy Consumption (MW)</h4>
+                    <span class="text-[10px] text-gray-400">Area Chart</span>
+                </div>
+                <div class="flex-1 relative flex items-center justify-center" style="height: 220px;">
+                    <canvas id="chartEnergy"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+
+    <script>
+        document.getElementById('filter-date').valueAsDate = new Date();
+
+        const KPRU_CENTER = [16.4828, 99.5225];
+        const miniMap = L.map('mini-map', { zoomControl: false, attributionControl: false }).setView(KPRU_CENTER, 16);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(miniMap);
+
+        const GEOJSON_URL = 'https://raw.githubusercontent.com/kknokwanny4677-eng/-KPRU-Smart-Campus-GIS-AI-/refs/heads/main/KPRU_Building.geojson';
+        let campusGeoLayer = null;
+        let allGeoJsonFeatures = [];
+
+        async function loadMiniMapData() {
+            try {
+                const res = await fetch(GEOJSON_URL);
+                if (res.ok) {
+                    const data = await res.json();
+                    allGeoJsonFeatures = data.features || [];
+                    renderMiniMapLayers(allGeoJsonFeatures);
+                }
+            } catch(e) {
+                console.warn('Mini map load note:', e);
+            }
+        }
+        loadMiniMapData();
+
+        function renderMiniMapLayers(features) {
+            if (campusGeoLayer) miniMap.removeLayer(campusGeoLayer);
+            campusGeoLayer = L.geoJSON({ type: "FeatureCollection", features: features }, {
+                style: { color: '#16a34a', weight: 2, fillColor: '#22c55e', fillOpacity: 0.6 },
+                onEachFeature: (f, l) => {
+                    l.bindPopup(`<b style="font-family: Prompt;">${f.properties.BL_Name || 'อาคาร KPRU'}</b>`);
+                }
+            }).addTo(miniMap);
+        }
+
+        Chart.defaults.font.family = 'Prompt';
+        Chart.defaults.font.size = 11;
+
+        // 1. Building Classification Chart
+        const ctxBuilding = document.getElementById('chartBuildingType').getContext('2d');
+        const chartBuildingType = new Chart(ctxBuilding, {
+            type: 'doughnut',
+            data: {
+                labels: ['Academic (อาคารเรียน)', 'Administration (สำนักงาน)', 'Service (บริการ)', 'Sport (กีฬา)', 'Dormitory (หอพัก)', 'Other (อื่นๆ)'],
+                datasets: [{
+                    data: [42, 15, 10, 4, 7, 5],
+                    backgroundColor: ['#16a34a', '#2563eb', '#d97706', '#84cc16', '#db2777', '#64748b'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } } }
+        });
+
+        // 2. Land Use Proportion Chart
+        const ctxLandUse = document.getElementById('chartLandUse').getContext('2d');
+        const chartLandUse = new Chart(ctxLandUse, {
+            type: 'pie',
+            data: {
+                labels: ['Building (อาคาร)', 'Green Area (พื้นที่สีเขียว)', 'Road (ถนน)', 'Parking (ที่จอดรถ)', 'Sport (สนามกีฬา)', 'Water (สระน้ำ)', 'Other (อื่นๆ)'],
+                datasets: [{
+                    data: [25, 35, 18, 8, 6, 5, 3],
+                    backgroundColor: ['#15803d', '#22c55e', '#64748b', '#f59e0b', '#84cc16', '#0ea5e9', '#a855f7'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } } }
+        });
+
+        // 3. Building Usage Chart
+        const ctxUsage = document.getElementById('chartBuildingUsage').getContext('2d');
+        const chartBuildingUsage = new Chart(ctxUsage, {
+            type: 'bar',
+            data: {
+                labels: ['อาคาร 1', 'อาคาร 9', 'อาคารเรียนรวม', 'หอสมุด', 'คณะครุศาสตร์', 'คณะวิทยาศาสตร์'],
+                datasets: [{
+                    label: 'ระดับการใช้งาน (%)',
+                    data: [85, 92, 78, 65, 88, 74],
+                    backgroundColor: '#16a34a',
+                    borderRadius: 6
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } } }
+        });
+
+        // 4. Parking Usage Chart
+        const ctxParking = document.getElementById('chartParking').getContext('2d');
+        const chartParking = new Chart(ctxParking, {
+            type: 'doughnut',
+            data: {
+                labels: ['Available (ว่าง 450 คัน)', 'Occupied (มีรถจอด 800 คัน)'],
+                datasets: [{
+                    data: [450, 800],
+                    backgroundColor: ['#22c55e', '#f59e0b'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } } }
+        });
+
+        // 5. Environmental Monitoring Chart
+        const envDatasets = {
+            temp: { label: 'Temperature (°C)', data: [28, 30, 34, 36, 33, 29], color: '#d97706', max: 50 },
+            humidity: { label: 'Humidity (%)', data: [75, 70, 60, 55, 65, 78], color: '#0ea5e9', max: 100 },
+            pm25: { label: 'PM2.5 (µg/m³)', data: [22, 28, 31, 26, 24, 20], color: '#16a34a', max: 100 },
+            aqi: { label: 'AQI Index', data: [45, 52, 60, 50, 46, 40], color: '#84cc16', max: 150 },
+            noise: { label: 'Noise (dB)', data: [55, 62, 68, 65, 58, 52], color: '#a855f7', max: 100 }
+        };
+
+        const ctxEnv = document.getElementById('chartEnvironment').getContext('2d');
+        const chartEnvironment = new Chart(ctxEnv, {
+            type: 'line',
+            data: {
+                labels: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00'],
+                datasets: [{
+                    label: envDatasets.pm25.label,
+                    data: envDatasets.pm25.data,
+                    borderColor: envDatasets.pm25.color,
+                    backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+
+        function updateEnvChart() {
+            const varKey = document.getElementById('env-variable-select').value;
+            const item = envDatasets[varKey];
+            chartEnvironment.data.datasets[0].label = item.label;
+            chartEnvironment.data.datasets[0].data = item.data;
+            chartEnvironment.data.datasets[0].borderColor = item.color;
+            chartEnvironment.options.scales.y.max = item.max;
+            chartEnvironment.update();
+        }
+
+        // 6. Energy Consumption Chart
+        const ctxEnergy = document.getElementById('chartEnergy').getContext('2d');
+        const chartEnergy = new Chart(ctxEnergy, {
+            type: 'line',
+            data: {
+                labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                datasets: [{
+                    label: 'Energy Consumption (MW)',
+                    data: [0.8, 0.6, 1.4, 1.8, 1.6, 1.1],
+                    borderColor: '#d97706',
+                    backgroundColor: 'rgba(217, 119, 6, 0.15)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+
+        // Global Calculation Trigger
+        function triggerGlobalCalculation() {
+            const bType = document.getElementById('filter-building-type').value;
+            const zone = document.getElementById('filter-zone').value;
+            const facility = document.getElementById('filter-facility').value;
+
+            if (bType === 'academic') {
+                document.getElementById('kpi-buildings').textContent = '42';
+                document.getElementById('kpi-area').textContent = '210 ไร่';
+                document.getElementById('kpi-green').textContent = '85 ไร่';
+                document.getElementById('kpi-parking').textContent = '650 คัน';
+                chartBuildingUsage.data.datasets[0].data = [90, 95, 88, 70, 92, 85];
+            } else if (bType === 'administration') {
+                document.getElementById('kpi-buildings').textContent = '15';
+                document.getElementById('kpi-area').textContent = '90 ไร่';
+                document.getElementById('kpi-green').textContent = '30 ไร่';
+                document.getElementById('kpi-parking').textContent = '300 คัน';
+                chartBuildingUsage.data.datasets[0].data = [60, 65, 55, 50, 62, 58];
+            } else if (bType === 'sport') {
+                document.getElementById('kpi-buildings').textContent = '4';
+                document.getElementById('kpi-area').textContent = '60 ไร่';
+                document.getElementById('kpi-green').textContent = '20 ไร่';
+                document.getElementById('kpi-parking').textContent = '400 คัน';
+                chartBuildingUsage.data.datasets[0].data = [70, 80, 75, 85, 78, 82];
+            } else {
+                document.getElementById('kpi-buildings').textContent = '78';
+                document.getElementById('kpi-area').textContent = '420 ไร่';
+                document.getElementById('kpi-green').textContent = '145 ไร่';
+                document.getElementById('kpi-parking').textContent = '1,250 คัน';
+                chartBuildingUsage.data.datasets[0].data = [85, 92, 78, 65, 88, 74];
+            }
+            chartBuildingUsage.update();
+
+            if (allGeoJsonFeatures.length > 0) {
+                let filtered = allGeoJsonFeatures;
+                if (bType !== 'all') {
+                    filtered = filtered.filter(f => String(f.properties.BL_Act || '').toLowerCase().includes(bType));
+                }
+                renderMiniMapLayers(filtered.length > 0 ? filtered : allGeoJsonFeatures);
+            }
+            alert("คำนวณและอัปเดตข้อมูล Dashboard สำเร็จเรียบร้อย!");
+        }
+
+        function resetGlobalFilters() {
+            document.getElementById('filter-building-type').value = 'all';
+            document.getElementById('filter-zone').value = 'all';
+            document.getElementById('filter-facility').value = 'all';
+            document.getElementById('filter-date').valueAsDate = new Date();
+            document.getElementById('kpi-buildings').textContent = '78';
+            document.getElementById('kpi-area').textContent = '420 ไร่';
+            document.getElementById('kpi-green').textContent = '145 ไร่';
+            document.getElementById('kpi-parking').textContent = '1,250 คัน';
+            chartBuildingUsage.data.datasets[0].data = [85, 92, 78, 65, 88, 74];
+            chartBuildingUsage.update();
+            renderMiniMapLayers(allGeoJsonFeatures);
+        }
+
+        function refreshAiInsights() {
+            const insights = [
+                "🤖 <b>AI สรุปผลอัปเดตล่าสุด:</b> อาคารเรียนรวมและปฏิบัติการมีอัตราการใช้พลังงานสูงสุดในช่วงบ่าย แนะนำให้ตั้งเวลาเปิดแอร์อัตโนมัติเพื่อประหยัดพลังงาน 12%",
+                "🤖 <b>AI สรุปผลอัปเดตล่าสุด:</b> บริเวณลานจอดรถหน้าหอสมุดมีความหนาแน่นในช่วง 09:00 - 11:00 น. แนะนำให้กระจายรถไปจอดที่โซนสนามกีฬา",
+                "🤖 <b>AI สรุปผลอัปเดตล่าสุด:</b> คุณภาพอากาศ (PM2.5) อยู่ในเกณฑ์ดีมาก (24 µg/m³) เหมาะสำหรับกิจกรรมกลางแจ้ง"
+            ];
+            const randomInsight = insights[Math.floor(Math.random() * insights.length)];
+            document.getElementById('ai-insight-content').innerHTML = `<p>${randomInsight}</p>`;
+        }
+    </script>
+</body>
+</html>
